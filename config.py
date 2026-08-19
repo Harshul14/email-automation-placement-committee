@@ -24,7 +24,8 @@ import os
 # ---------------------------------------------------------------------
 # MODE: "TEST" or "PRODUCTION" — the only line you need to touch daily
 # ---------------------------------------------------------------------
-MODE = "TEST"  # change to "PRODUCTION" only after verifying TEST drafts
+MODE = "PRODUCTION"  # change to "PRODUCTION" only after verifying TEST drafts
+# MODE = "TEST"  # change to "PRODUCTION" only after verifying TEST drafts
 
 # ---------------------------------------------------------------------
 # Google Drive persistence (Colab)
@@ -59,13 +60,21 @@ PRODUCTION_CC_EMAILS = [
     "BRYAN.PAES025@nmims.in",
     "AARYESH.MISHRA450@nmims.in",
     "AYUSHI.SRIVASTAVA073@nmims.in",
+    "Placement.Blr@nmims.edu"
 ]
 
 # ---------------------------------------------------------------------
-# Test mode redirection (protects real recipients during development)
+# Test mode settings (spec sections 7-8)
+# In TEST mode:
+#   To:  is redirected to TEST_REDIRECT_EMAIL (real recipients NEVER used)
+#   CC:  is replaced with TEST_CC_EMAILS
+# The production CC addresses are NEVER included in TEST mode.
 # ---------------------------------------------------------------------
-TEST_TO_EMAIL = "harshul7713@gmail.com"
-TEST_CC_EMAILS = ["harshul.spacece@gmail.com"]
+TEST_REDIRECT_EMAIL = "harshul7713@gmail.com"   # spec §7: hard-redirect To:
+TEST_CC_EMAILS = [
+    "poorvi.verma604@nmims.in",
+    "harshul.spacece@gmail.com",
+]
 
 # ---------------------------------------------------------------------
 # Batch / campaign settings
@@ -97,7 +106,7 @@ LinkedIn: <a href="https://www.linkedin.com/in/harshul-varshney" style="color:#0
 </p>
 """
 
-EMAIL_SUBJECT = "Campus Connect Program – NMIMS Bengaluru"
+EMAIL_SUBJECT = "Exploring Collaboration Opportunities | NMIMS Bengaluru"
 
 # Real destination URLs extracted from the Safelinks-wrapped hyperlinks
 # in the source DOCX (the safelinks are Outlook's own rewriting of these).
@@ -124,6 +133,10 @@ def db_path():
 
 
 def active_cc_list():
+    """Return the correct CC list for the current mode.
+    TEST  → limited test CC list (real recipients still receive the mail)
+    PROD  → full production CC list
+    """
     return TEST_CC_EMAILS if MODE == "TEST" else PRODUCTION_CC_EMAILS
 
 
