@@ -1,31 +1,26 @@
 """
 template_engine.py
 ===================
-Renders the source DOCX ('Campus Connect' template) into personalized
-HTML email bodies. The template has no signature block and no image
-(verified by inspecting the file) — so the signature from config.py is
-appended fresh, it is not a "replacement".
+Renders the 'Invitation for Campus Hiring' template into personalized
+HTML email bodies, matching the actual sent .eml from NMIMS, Bengaluru.
 
-Static body text is read ONCE from the DOCX and cached; only the
-greeting line and the company-name placeholder are personalized per
-recipient, exactly as the source document's structure implies (it does
-not attempt to rewrite the rest of the body).
+Template body (greeting → before regards) is sourced directly from the
+decoded plain-text of the reference .eml, which is the authoritative
+source for this template.
 
 HTML structure matches the actual sent .eml (Outlook rendering) exactly:
   - Paragraphs use line-height:1.284 and margin:0cm 0cm 8pt
-  - Yellow highlight is a <span> inside a normal div, not a block bg
-  - Bullet list uses disc style with no extra left indent on <li>
-  - "To know more" prefix text is bold; link text is <b><u>...</u></b>
-  - Company name in the closing line is bold
+  - Bullet list uses disc style; each bullet item is bold
+  - Corporate Presentation and Placement Brochure are bold+underline links
+  - Company name in the closing "We look forward" line is bold
+  - "Kindly let us know" closing line appears before the signature
 """
-
-import docx
 
 import config
 
-_CACHED_BODY_PARAGRAPHS = None
-
+# ---------------------------------------------------------------------------
 # Shared paragraph style matching actual Outlook rendering
+# ---------------------------------------------------------------------------
 _P_STYLE = (
     'font-family: Calibri, Helvetica, sans-serif; '
     'font-size: 11pt; '
@@ -34,183 +29,211 @@ _P_STYLE = (
     'margin: 0cm 0cm 8pt;'
 )
 
+# ---------------------------------------------------------------------------
+# Static body paragraphs (in order), excluding the personalized greeting
+# and the closing "We look forward" line (handled separately).
+# ---------------------------------------------------------------------------
 
-def _load_static_paragraphs():
-    """Read the DOCX once and return its paragraph texts (nbsp normalized),
-    skipping the greeting line (index 0, personalized separately) and the
-    trailing blank paragraph."""
-    global _CACHED_BODY_PARAGRAPHS
-    if _CACHED_BODY_PARAGRAPHS is not None:
-        return _CACHED_BODY_PARAGRAPHS
+# Bullet items for the Job Description list
+_JD_BULLETS = [
+    "Job Role",
+    "Job Location",
+    "Criteria",
+    "Specialization",
+    "Stipend/ CTC details (with both fixed and variable component)",
+]
 
-    doc = docx.Document(config.DOCX_TEMPLATE)
-    texts = [p.text.replace("\xa0", " ").strip() for p in doc.paragraphs]
-
-    # index 0 is the greeting placeholder -> handled separately per email
-    body = texts[1:]
-    _CACHED_BODY_PARAGRAPHS = body
-    return body
-
-
-# Lines in the source template that render as bullet points.
-# First bullet appears after the AICTE paragraph (single-item list).
-# Next two appear after "...brief virtual meeting to discuss:" (two-item list).
-_BULLET_MARKERS = {
-    "Our MBA program offers a rigorous 102-credit curriculum across diverse specializations including Finance, Marketing, IT & Operations, Analytics, Strategy, and HR.",
-    "Batch Profiles and Placement Engagement like Internships and Final Placements",
-    "Student interaction opportunities through Guest Lectures, Live Projects and Competitions",
-}
-
-# Sentence that gets yellow highlight (as seen in the actual sent .eml)
-_YELLOW_HIGHLIGHT_MARKER = "To discuss in detail regarding the Campus Connect Program"
+# Bold phrases to wrap in <b> tags (applied to non-link, non-bullet paragraphs)
+_BOLD_PHRASES = [
+    "AICTE-approved institution",
+    "102-credit curriculum",
+    "Finance, Marketing, IT & Operations, Analytics, Strategy, and HR.",
+    "Finance, Marketing, IT & Operations, Analytics, Strategy, and HR",
+    "Summer Internship and Final Placement Season",
+    "Job Description",
+]
 
 
-def _apply_bold_phrases(text):
+def _apply_bold_phrases(text: str) -> str:
     """Wrap known key phrases in <b> tags to match the actual sent email."""
-    bold_phrases = [
-        "AICTE-approved institution",
-        "102-credit curriculum",
-        "Finance, Marketing, IT & Operations, Analytics, Strategy, and HR.",
-        "Finance, Marketing, IT & Operations, Analytics, Strategy, and HR",
-        "Campus Connect Program",
-        "MBA 2025\u201327 and 2026\u201328 cohorts.",
-        "MBA 2025\u201327 and 2026\u201328 cohorts",
-        "MBA 2025-27 and 2026-28 cohorts.",
-        "MBA 2025-27 and 2026-28 cohorts",
-        "Internships and Final Placements",
-        "Guest Lectures, Live Projects and Competitions",
-    ]
-    for phrase in bold_phrases:
+    for phrase in _BOLD_PHRASES:
         if phrase in text:
             text = text.replace(phrase, f"<b>{phrase}</b>")
     return text
 
 
-def _build_linkedin_website_line(text):
-    """Render the 'To know more' line exactly as the actual sent email:
-    bold prefix + bold-underline link text."""
-    # Split at 'LinkedIn Page' and rebuild
-    prefix = "To know more about us, kindly visit our "
-    linkedin_label = "LinkedIn Page"
-    website_label  = "NMIMS Bengaluru\u2019s Website"
-    website_label2 = "NMIMS Bengaluru's Website"
-    sep = " or "
-
-    linkedin_html = (
-        f'<a href="{config.LINKEDIN_URL}" style="color:rgb(0,0,153);">'
-        f'<b><u>{linkedin_label}</u></b></a>'
+def _build_bullet_list() -> str:
+    """Render the Job Description bullet list exactly as in the .eml."""
+    items_html = ""
+    for item in _JD_BULLETS:
+        items_html += (
+            f'<li style="font-family:Calibri,Helvetica,sans-serif; '
+            f'font-size:11pt; color:rgb(0,0,153); '
+            f'direction:ltr; align-self:start; '
+            f'margin-right:0cm; margin-left:0cm;">'
+            f'<div style="direction:ltr; text-align:left; '
+            f'text-indent:0px; line-height:1.284; margin:0cm 0px 8pt;">'
+            f'<b>{item}</b>'
+            f'</div>'
+            f'</li>'
+        )
+    return (
+        '<ul style="direction:ltr; text-align:left; '
+        'margin-top:0px; margin-bottom:0px; list-style-type:disc; '
+        'background-color:rgb(255,255,255); flex-direction:column; display:flex;">'
+        + items_html +
+        '</ul>'
     )
-    website_url_label = website_label if website_label in text else website_label2
-    website_html = (
-        f'<a href="{config.WEBSITE_URL}" style="color:rgb(0,0,153);">'
-        f'<b><u>{website_url_label}</u></b></a>'
-        f'<b><u>.</u></b>'
+
+
+def _build_brochure_line() -> str:
+    """Render the Corporate Presentation / Placement Brochure link line,
+    matching the bold+underline link style from the actual .eml."""
+    corp_href = config.CORPORATE_PRESENTATION_URL
+    brochure_href = config.PLACEMENT_BROCHURE_URL
+
+    corp_link = (
+        f'<a href="{corp_href}" style="color:rgb(0,0,153);">'
+        f'<b><u>Corporate Presentation</u></b></a>'
+    )
+    brochure_link = (
+        f'<a href="{brochure_href}" style="color:rgb(0,0,153);">'
+        f'<b>Placement Brochure</b></a>'
     )
 
     return (
         f'<div style="{_P_STYLE}">'
-        f'<b>{prefix}</b>{linkedin_html}<b>{sep}</b>{website_html}'
+        f'Also, please find the link&nbsp;to&nbsp;our {corp_link}'
+        f'&nbsp;and {brochure_link} for your kind perusal.'
         f'</div>'
     )
 
 
-def render_html(greeting, company_name):
-    """Build the full HTML email body for one recipient."""
-    body_paragraphs = _load_static_paragraphs()
+def render_html(greeting: str, company_name: str) -> str:
+    """Build the full HTML email body for one recipient.
 
-    html_parts = [
-        f'<html><body style="font-family: Calibri, Helvetica, sans-serif; '
-        f'font-size: 11pt; color: rgb(0, 0, 153);">'
+    Args:
+        greeting:     The personalised salutation, e.g. "Dear Mr./Ms. Shah,"
+        company_name: The company name used in the closing line.
+
+    Returns:
+        A complete HTML string ready to embed as the email body.
+    """
+    parts = [
+        '<html><body style="font-family: Calibri, Helvetica, sans-serif; '
+        'font-size: 11pt; color: rgb(0, 0, 153);">'
     ]
 
-    # Greeting line
-    html_parts.append(
-        f'<div style="{_P_STYLE}">{greeting}</div>'
+    def p(text: str) -> str:
+        """Wrap text in a standard paragraph div."""
+        return f'<div style="{_P_STYLE}">{text}</div>'
+
+    # ------------------------------------------------------------------
+    # 1. Salutation (personalised)
+    # ------------------------------------------------------------------
+    parts.append(p(greeting))
+
+    # ------------------------------------------------------------------
+    # 2. Opening lines
+    # ------------------------------------------------------------------
+    parts.append(p("Greetings of the day from&nbsp;NMIMS, Bengaluru!"))
+    parts.append(p("Hope you are safe and doing well."))
+
+    # ------------------------------------------------------------------
+    # 3. Institution / programme paragraph
+    # ------------------------------------------------------------------
+    inst_para = (
+        "As an <b>AICTE-approved institution</b>, NMIMS Bengaluru has established itself as a hub of academic "
+        "excellence and innovation within the dynamic landscape of Bengaluru. Our MBA program offers a rigorous "
+        "<b>102-credit curriculum</b> across diverse specializations including "
+        "<b>Finance, Marketing, IT &amp; Operations, Analytics, Strategy, and HR.</b>"
     )
+    parts.append(p(inst_para))
 
-    bullet_buffer = []
+    # ------------------------------------------------------------------
+    # 4. Placement season invitation
+    # ------------------------------------------------------------------
+    season_para = (
+        "As we prepare&nbsp;for&nbsp;the&nbsp;forthcoming "
+        "<b>Summer Internship and Final Placement Season</b>, we are pleased&nbsp;to&nbsp;invite "
+        "your esteemed organization&nbsp;to&nbsp;engage with our student cohort.&nbsp;"
+    )
+    parts.append(p(season_para))
 
-    def flush_bullets():
-        if bullet_buffer:
-            html_parts.append(
-                '<ul style="direction:ltr; text-align:left; '
-                'margin-top:0px; margin-bottom:0px; list-style-type:disc;">'
-            )
-            for item in bullet_buffer:
-                item = _apply_bold_phrases(item)
-                html_parts.append(
-                    f'<li style="font-family:Calibri,Helvetica,sans-serif; '
-                    f'font-size:11pt; color:rgb(0,0,153); '
-                    f'margin-right:0cm; margin-left:0cm;">'
-                    f'<div style="direction:ltr; text-align:left; '
-                    f'text-indent:0px; line-height:1.284;">{item}</div>'
-                    f'<div style="line-height:1.284; margin:0px 0cm;"><b><br></b></div>'
-                    f'</li>'
-                )
-            html_parts.append('</ul>')
-            bullet_buffer.clear()
+    # ------------------------------------------------------------------
+    # 5. Role-specific details request
+    # ------------------------------------------------------------------
+    details_para = (
+        "To&nbsp;initiate the process, we kindly request you&nbsp;to&nbsp;share the role-specific details, "
+        "which will help us drive student interest and ensure a stronger fit between your requirements "
+        "and our students\u2019 capabilities."
+    )
+    parts.append(p(details_para))
 
-    for text in body_paragraphs:
-        if not text:
-            continue  # skip empty spacer paragraphs from the source docx
+    # ------------------------------------------------------------------
+    # 6. Job Description intro
+    # ------------------------------------------------------------------
+    jd_intro = (
+        "We would require the <b>Job Description</b>&nbsp;comprising of the following details:"
+    )
+    parts.append(p(jd_intro))
 
-        if text in _BULLET_MARKERS:
-            bullet_buffer.append(text)
-            continue
-        else:
-            flush_bullets()
+    # ------------------------------------------------------------------
+    # 7. Bullet list
+    # ------------------------------------------------------------------
+    parts.append(_build_bullet_list())
 
-        # Company name placeholder substitution
-        if "Name of company" in text or "\u2018Name of company\u2019" in text:
-            text = text.replace("'Name of company'", company_name)
-            text = text.replace("\u2018Name of company\u2019", company_name)
-            text = text.replace("..", ".")
+    # ------------------------------------------------------------------
+    # 8. Corporate Presentation / Placement Brochure links
+    # ------------------------------------------------------------------
+    parts.append(_build_brochure_line())
 
-        # LinkedIn / Website line — rendered specially to match the .eml exactly
-        if "kindly visit our" in text or "To know more" in text:
-            html_parts.append(_build_linkedin_website_line(text))
-            continue
+    # ------------------------------------------------------------------
+    # 9. "We look forward" closing line — company name is bold
+    # ------------------------------------------------------------------
+    forward_para = (
+        f"We look&nbsp;forward&nbsp;to&nbsp;partnering with "
+        f"<b>{company_name}</b> and welcoming your organization during our Placement Season."
+    )
+    parts.append(p(forward_para))
 
-        # Yellow highlight sentence — use <span> inside a normal div (not block bg)
-        if _YELLOW_HIGHLIGHT_MARKER in text:
-            html_parts.append(
-                f'<div style="{_P_STYLE}">'
-                f'<span style="background-color:rgb(255,255,0);">'
-                f'<b>{text}</b>'
-                f'</span>'
-                f'</div>'
-            )
-            continue
+    # ------------------------------------------------------------------
+    # 10. Concerns line
+    # ------------------------------------------------------------------
+    parts.append(p("Kindly let us know in case of any concerns."))
 
-        # Closing "We look forward" line — bold the company name
-        if "We look forward" in text and company_name in text:
-            idx = text.find(company_name)
-            before = text[:idx]
-            after  = text[idx + len(company_name):]
-            html_parts.append(
-                f'<div style="{_P_STYLE}">'
-                f'{before}<b>{company_name}</b>{after}'
-                f'</div>'
-            )
-            continue
+    # ------------------------------------------------------------------
+    # 11. Signature
+    # ------------------------------------------------------------------
+    parts.append(config.SIGNATURE_HTML)
+    parts.append("</body></html>")
 
-        # General paragraph — apply bold phrases
-        text = _apply_bold_phrases(text)
-        html_parts.append(f'<div style="{_P_STYLE}">{text}</div>')
-
-    flush_bullets()
-
-    html_parts.append(config.SIGNATURE_HTML)
-    html_parts.append("</body></html>")
-    return "\n".join(html_parts)
+    return "\n".join(parts)
 
 
-def render_plaintext_fallback(greeting, company_name):
+def render_plaintext_fallback(greeting: str, company_name: str) -> str:
+    """Plain-text fallback for email clients that cannot render HTML."""
+    bullets = "\n".join(f"  • {item}" for item in _JD_BULLETS)
     return (
         f"{greeting}\n\n"
-        f"Greetings from NMIMS Bengaluru! We are reaching out regarding the "
-        f"Campus Connect Program and would welcome the opportunity to partner "
-        f"with {company_name}.\n\n"
+        f"Greetings of the day from NMIMS, Bengaluru!\n\n"
+        f"Hope you are safe and doing well.\n"
+        f"As an AICTE-approved institution, NMIMS Bengaluru has established itself as a hub of academic "
+        f"excellence and innovation within the dynamic landscape of Bengaluru. Our MBA program offers a "
+        f"rigorous 102-credit curriculum across diverse specializations including Finance, Marketing, "
+        f"IT & Operations, Analytics, Strategy, and HR.\n"
+        f"As we prepare for the forthcoming Summer Internship and Final Placement Season, we are pleased "
+        f"to invite your esteemed organization to engage with our student cohort.\n"
+        f"To initiate the process, we kindly request you to share the role-specific details, which will "
+        f"help us drive student interest and ensure a stronger fit between your requirements and our "
+        f"students\u2019 capabilities.\n"
+        f"We would require the Job Description comprising of the following details:\n\n"
+        f"{bullets}\n\n"
+        f"Also, please find the link to our Corporate Presentation and Placement Brochure for your kind perusal.\n"
+        f"We look forward to partnering with {company_name} and welcoming your organization during our "
+        f"Placement Season.\n"
+        f"Kindly let us know in case of any concerns.\n\n"
         f"Best Regards,\nHarshul Varshney\nMember | Placement Committee\n"
-        f"SVKM's Narsee Monjee Institute of Management Studies\n"
+        f"SVKM's Narsee Monjee Institute of Management Studies,\n"
+        f"Bannerghatta Main Road, Bengaluru - 560083\n"
     )

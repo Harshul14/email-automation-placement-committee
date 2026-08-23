@@ -72,7 +72,7 @@ PRODUCTION_CC_EMAILS = [
 # ---------------------------------------------------------------------
 TEST_REDIRECT_EMAIL = "harshul7713@gmail.com"   # spec §7: hard-redirect To:
 TEST_CC_EMAILS = [
-    "poorvi.verma604@nmims.in",
+    # "poorvi.verma604@nmims.in",
     "harshul.spacece@gmail.com",
 ]
 
@@ -106,12 +106,12 @@ LinkedIn: <a href="https://www.linkedin.com/in/harshul-varshney" style="color:#0
 </p>
 """
 
-EMAIL_SUBJECT = "Exploring Collaboration Opportunities | NMIMS Bengaluru"
+EMAIL_SUBJECT = "Invitation for Campus Hiring | NMIMS, Bengaluru"
 
-# Real destination URLs extracted from the Safelinks-wrapped hyperlinks
-# in the source DOCX (the safelinks are Outlook's own rewriting of these).
-LINKEDIN_URL = "https://www.linkedin.com/company/corporate-relations-nmims-bengaluru/"
-WEBSITE_URL = "https://bengaluru.nmims.edu/"
+# SharePoint document links embedded in the "Invitation for Campus Hiring" template.
+# Fill in your own SharePoint URLs here before running the campaign.
+CORPORATE_PRESENTATION_URL = "https://svkmmumbai-my.sharepoint.com/:b:/g/personal/ayushi_srivastava073_nmims_in/IQCQhOPTOBkBRKf75wOYM6jPAfpCDwGJAg6mHti7_Td8LuY?xsdata=MDV8MDJ8anVuaW9ycGxhY2VtZW50Y29tbWl0dGVlMjAyNi0yN0BzdmttbXVtYmFpLm9ubWljcm9zb2Z0LmNvbXxlNzJkNjAzNDUwNDI0YWI4OTc3OTA4ZGVmZmIxY2E0OXxkMWYxNDM0OGYxYjU0YTA5YWM5OTdlYmYyMTNjYmM4MXwwfDB8NjM5MjI5MzM2MjM2MzgwOTQ3fFVua25vd258VFdGcGJHWnNiM2Q4ZXlKRmJYQjBlVTFoY0draU9uUnlkV1VzSWxZaU9pSXdMakF1TURBd01DSXNJbEFpT2lKWGFXNHpNaUlzSWtGT0lqb2lUV0ZwYkNJc0lsZFVJam95ZlE9PXwwfHx8&sdata=NnNiYzJmZUpNVUZ5TkRWR0RsWlRCT2hud0FtNURSYzhSMjF2cnZGaTl0ND0%3d"  # TODO: paste your Corporate Presentation SharePoint link
+PLACEMENT_BROCHURE_URL = "https://svkmmumbai-my.sharepoint.com/:b:/g/personal/ayushi_srivastava073_nmims_in/IQBkTwt4IOy_TaiFABDo5po5AfqpeqFI5JoX-b9LBG_-x5Y?e=fwFUt9&xsdata=MDV8MDJ8anVuaW9ycGxhY2VtZW50Y29tbWl0dGVlMjAyNi0yN0BzdmttbXVtYmFpLm9ubWljcm9zb2Z0LmNvbXxlNzJkNjAzNDUwNDI0YWI4OTc3OTA4ZGVmZmIxY2E0OXxkMWYxNDM0OGYxYjU0YTA5YWM5OTdlYmYyMTNjYmM4MXwwfDB8NjM5MjI5MzM2MjM2NDAyNDIwfFVua25vd258VFdGcGJHWnNiM2Q4ZXlKRmJYQjBlVTFoY0draU9uUnlkV1VzSWxZaU9pSXdMakF1TURBd01DSXNJbEFpT2lKWGFXNHpNaUlzSWtGT0lqb2lUV0ZwYkNJc0lsZFVJam95ZlE9PXwwfHx8&sdata=dFVJYlprZ3VmdVdYQ0MrY3k4cS90T01OMkdxeE9OZVgyVXBxZmV2UU1KMD0%3d"       # TODO: paste your Placement Brochure SharePoint link
 
 
 def data_dir():
