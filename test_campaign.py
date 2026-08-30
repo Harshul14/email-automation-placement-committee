@@ -169,7 +169,7 @@ def test_batch_respects_daily_limit(monkeypatch):
 def test_test_mode_redirects_recipient():
     assert config.is_test_mode() is True
     assert config.active_cc_list() == config.TEST_CC_EMAILS
-    assert config.TEST_TO_EMAIL != "rahul@abc.com"
+    assert config.TEST_REDIRECT_EMAIL != "rahul@abc.com"
 
 
 def test_production_mode_uses_real_cc(monkeypatch):
