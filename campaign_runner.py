@@ -149,10 +149,33 @@ def sync_companies_to_db(records):
 def select_batch(records, limit=None):
     """Pick up to `limit` companies that have not already been SENT or drafted,
     and choose the next rotation contact for each.
-    If limit is None, falls back to config.DAILY_COMPANY_LIMIT."""
+    If limit is None, falls back to config.DAILY_COMPANY_LIMIT.
+
+    Cycle restart:
+    If ALL companies in `records` have already been contacted in a previous
+    run (i.e. the full Excel sheet has been exhausted), this function detects
+    the end-of-cycle and automatically restarts from the beginning — clearing
+    the 'already contacted' filter so every company becomes eligible again.
+    The per-company contact rotation (round-robin across POC emails) continues
+    from wherever it left off; it is NOT reset.
+    """
     if limit is None:
         limit = config.DAILY_COMPANY_LIMIT
+
     already = database.already_contacted_company_keys()
+
+    # --- Cycle-complete detection ---
+    # If every company from the Excel is in the 'already contacted' set,
+    # the full sheet has been exhausted. Restart from the beginning.
+    all_keys_in_excel = {r.company_key for r in records}
+    if all_keys_in_excel and all_keys_in_excel.issubset(already):
+        print("\n" + "=" * 60)
+        print("CYCLE COMPLETE: All companies in the Excel sheet have been")
+        print("contacted at least once. Restarting from the beginning.")
+        print("Contact rotation (round-robin) continues where it left off.")
+        print("=" * 60 + "\n")
+        already = set()  # Reset — allow all companies to be picked again
+
     seen_in_this_batch = set()
     batch = []
     for r in records:
