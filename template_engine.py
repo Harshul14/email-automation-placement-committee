@@ -233,7 +233,5 @@ def render_plaintext_fallback(greeting: str, company_name: str) -> str:
         f"We look forward to partnering with {company_name} and welcoming your organization during our "
         f"Placement Season.\n"
         f"Kindly let us know in case of any concerns.\n\n"
-        f"Best Regards,\nHarshul Varshney\nMember | Placement Committee\n"
-        f"SVKM's Narsee Monjee Institute of Management Studies,\n"
-        f"Bannerghatta Main Road, Bengaluru - 560083\n"
+        + (config.SIGNATURE_PLAIN or "")
     )

@@ -38,6 +38,7 @@ import sys
 
 import config
 import database
+import user_profile as _user_profile
 from contact_matcher import greeting_for, select_next_contact
 from excel_parser import load_companies
 from mail_client import MailSession
@@ -222,6 +223,14 @@ def confirm(prompt_text):
 
 def run():
     # ------------------------------------------------------------------
+    # Step 0: Load or prompt for the user's identity profile.
+    # This MUST happen before any config fields that depend on it are read
+    # (SENDER_EMAIL, PRODUCTION_CC_EMAILS, OWNER_FILTER, SIGNATURE_*).
+    # ------------------------------------------------------------------
+    profile = _user_profile.load_or_prompt()
+    config.apply_user_profile(profile)
+
+    # ------------------------------------------------------------------
     # Startup: warn if the campaign DB doesn't exist yet (e.g. Colab
     # runtime was reset and Google Drive wasn't mounted, which would wipe
     # all rotation/dedup history and risk re-sending to prior companies).
@@ -271,8 +280,12 @@ def run():
         print("Aborted before draft creation. No emails created or sent.")
         return
 
-    print("\nEnter your NMIMS account password (used only for this run, never stored):")
-    password = getpass.getpass()
+    print("\nEnter your NMIMS Microsoft 365 account password.")
+    print("⚠  WARNING: Entering the wrong password multiple times will lock")
+    print("   your NMIMS account (Microsoft 365 locks after ~10 failed attempts).")
+    print("   If you are unsure, stop now and verify your password first.")
+    print("   Your password is used ONLY for this run and is NEVER stored.")
+    password = getpass.getpass(prompt="  NMIMS Password: ")
 
     session = MailSession(password)
     session.connect()

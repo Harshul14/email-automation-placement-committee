@@ -1,0 +1,20 @@
+﻿# Campaign data — contains personal details and history; NEVER commit
+data/user_profile.json
+data/*.db
+data/drafts/
+
+# Logs — may contain recipient email addresses
+logs/
+
+# Python caches
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# OS junk
+.DS_Store
+Thumbs.db
